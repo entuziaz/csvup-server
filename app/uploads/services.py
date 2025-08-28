@@ -8,20 +8,45 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def process_csv_upload(file, db: Session):
+def process_csv_upload(df: pd.DataFrame, file_name: str, db: Session):
     """
     Reads a CSV file and inserts/updates records in the database.
     Returns summary info for response.
     """
     try:
-        df = pd.read_csv(file.file)
-        timestamp = datetime.strptime(row["timestamp"], "%Y-%m-%d %H:%M:%S")
-        transaction_day_of_week = day_to_int(row["transaction_day_of_week"])
+        # df = pd.read_csv(file.file)
+        
+        # df["timestamp"] = pd.to_datetime(df["timestamp"], format="%Y-%m-%d %H:%M:%S")
+        # df["transaction_day_of_week"] = df["transaction_day_of_week"].map({
+        #     "Monday": 0,
+        #     "Tuesday": 1,
+        #     "Wednesday": 2,
+        #     "Thursday": 3,
+        #     "Friday": 4,
+        #     "Saturday": 5,
+        #     "Sunday": 6
+        # })
+        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", format="%Y-%m-%d %H:%M:%S")
+        df["transaction_day_of_week"] = df["transaction_day_of_week"].map({
+                "Monday": 0,
+                "Tuesday": 1,
+                "Wednesday": 2,
+                "Thursday": 3,
+                "Friday": 4,
+                "Saturday": 5,
+                "Sunday": 6
+            })
 
         for _, row in df.iterrows():
+            # timestamp = datetime.strptime(row["timestamp"], "%Y-%m-%d %H:%M:%S")
+            # transaction_day_of_week = day_to_int(row["transaction_day_of_week"])
+
+            # Convert day names to integers
+            
+
             txn = models.Transaction(
                 transaction_id=row["transaction_id"],
-                timestamp=timestamp,
+                 timestamp=row["timestamp"].to_pydatetime() if not pd.isnull(row["timestamp"]) else None,  
                 user_id=row["user_id"],
                 account_age_days=row["account_age_days"],
                 customer_tier=row["customer_tier"],
@@ -35,7 +60,7 @@ def process_csv_upload(file, db: Session):
                 merchant_id=row["merchant_id"],
                 merchant_risk_score=row["merchant_risk_score"],
                 transaction_hour=row["transaction_hour"],
-                transaction_day_of_week=transaction_day_of_week,
+                transaction_day_of_week=row["transaction_day_of_week"],
                 is_weekend_transaction=bool(row["is_weekend_transaction"]),
                 is_nighttime_transaction=bool(row["is_nighttime_transaction"]),
                 device_id=row["device_id"],
@@ -43,7 +68,7 @@ def process_csv_upload(file, db: Session):
                 device_type=row["device_type"],
                 is_vpn_used=bool(row["is_vpn_used"]),
                 is_proxy_used=bool(row["is_proxy_used"]),
-                ip=row["ip"],
+                ip_address=row["ip_address"],
                 has_multiple_devices=bool(row["has_multiple_devices"]),
                 is_blacklisted_card=bool(row["is_blacklisted_card"]),
                 is_blacklisted_device=bool(row["is_blacklisted_device"]),
@@ -59,14 +84,13 @@ def process_csv_upload(file, db: Session):
 
         db.commit()
 
-        return {"filename": file.filename, "rows": len(df)}
+        return {"filename": file_name, "rows": len(df)}
 
     except Exception as e:
         logger.error(f"---Error while parsing CSV: {str(e)}")
         raise
 
-# Helper Functions ####
-#
+
 def day_to_int(day_name: str) -> int:
     day_map = {
         "Monday": 0,
