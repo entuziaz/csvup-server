@@ -4,7 +4,6 @@ from app.core import database
 from app.uploads import models
 from app.uploads.routers import router as uploads_router
 from fastapi.middleware.cors import CORSMiddleware
-import os
 
 
 # MODEL CREATION (for sqlite only)
@@ -19,9 +18,8 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-origins = [
-    "http://localhost:5173", 
-]
+# CORS
+origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,https://csvup-client.vercel.app").split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,3 +31,8 @@ app.add_middleware(
 
 # ROUTERS
 app.include_router(uploads_router)
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "database": "connected"} 
