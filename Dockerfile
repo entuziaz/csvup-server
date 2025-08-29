@@ -16,4 +16,13 @@ COPY app/ ./app/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# alembic files
+COPY alembic.ini .
+COPY alembic/ ./alembic/
+
+# startup script
+COPY start.sh .
+RUN chmod +x start.sh
+
+# Use the startup script instead of direct uvicorn
+CMD ["./start.sh"]

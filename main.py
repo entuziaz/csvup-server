@@ -1,12 +1,15 @@
+import os
 from fastapi import FastAPI
 from app.core import database
 from app.uploads import models
 from app.uploads.routers import router as uploads_router
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 
-# MODEL CREATION
-models.Base.metadata.create_all(bind=database.engine)
+# MODEL CREATION (for sqlite only)
+if os.getenv("DATABASE_URL", "").startswith("sqlite"):
+    models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(
     title="CSV Upload API",

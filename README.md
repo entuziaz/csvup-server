@@ -19,10 +19,12 @@ A FastAPI backend for uploading, validating, and storing transaction data from C
   - `services.py`: Core logic for processing and merging CSV data into the DB.
   - `validators.py`: CSV column validation logic.
 
-
 - **app/tests/**  
   - `conftest.py`: Pytest fixtures for DB and FastAPI client.
   - `test_*.py`: Unit and integration tests for uploads, performance, and duplicate handling.
+
+- **alembic/**  
+  Database migrations (see below for usage).
 
 - **Dockerfile**  
   Containerizes the app for production or local development.
@@ -52,6 +54,11 @@ A FastAPI backend for uploading, validating, and storing transaction data from C
    POSTGRES_PASSWORD=<password>
    ```
 
+   Or, for SQLite (for quick testing):
+   ```
+   DATABASE_URL=sqlite:///./uploads.db
+   ```
+
 3. **Install dependencies**
    ```sh
    python3 -m venv venv
@@ -59,7 +66,12 @@ A FastAPI backend for uploading, validating, and storing transaction data from C
    pip install -r requirements.txt
    ```
 
-4. **Run the app**
+4. **Run database migrations**
+   ```sh
+   alembic upgrade head
+   ```
+
+5. **Run the app**
    ```sh
    uvicorn main:app --reload
    ```
@@ -82,18 +94,48 @@ A FastAPI backend for uploading, validating, and storing transaction data from C
 >   The default `docker-compose.yml` expects an external Postgres DB (yours sincerely uses one hosted by Render.com free tier).  
    To use a local Postgres container, uncomment the `db:` service and related lines in `docker-compose.yml`.
 
+   **Migrations:**  
+   The `start.sh` script automatically runs `alembic upgrade head` before starting the app in Docker.
+
+
+---
+
+### Alembic Migration Commands
+
+- **Create new migration**
+  ```sh
+  alembic revision --autogenerate -m "description"
+  ```
+- **Apply migrations**
+  ```sh
+  alembic upgrade head
+  ```
+- **Rollback last migration**
+  ```sh
+  alembic downgrade -1
+  ```
+- **Check current revision**
+  ```sh
+  alembic current
+  ```
+- **Show migration history**
+  ```sh
+  alembic history
+  ```
+
+---
+
+### Render Deployment
+
+Render runs `alembic upgrade head` automatically before starting the app (see [`render.yaml`](render.yaml)), so your database is always up to date with the latest migrations.
+
 ---
 
 ## Running Tests
 
-- **With local Python:**
+- **With local Python pytest:**
   ```sh
   pytest
-  ```
-
-- **With Docker Compose:**
-  ```sh
-  docker-compose exec app pytest
   ```
 
 Tests cover:

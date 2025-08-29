@@ -1,19 +1,22 @@
 # tests/conftest.py
 import pytest
+import sys 
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from app.core.database import Base, get_db
-from fastapi.testclient import TestClient
-from main import app
-
-import io
 from sqlalchemy.orm import Session
+
+from app.core.database import Base, get_db
+from main import app
+from fastapi.testclient import TestClient
 from app.uploads import models
+
+
 # import sys
 # from pathlib import Path
 
-# sys.path.append(str(Path(__file__).resolve().parents[2]))
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 
 # In-memory SQLite
