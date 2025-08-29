@@ -15,6 +15,7 @@ class UploadHistoryResponse(BaseModel):
     uploaded_at: datetime
     rows_processed: int
     status: str
+    details: Optional[dict] = None
     # user_ip: Optional[str] = None
     
     class Config:

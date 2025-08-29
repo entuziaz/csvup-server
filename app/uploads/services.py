@@ -3,6 +3,7 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from . import models
 from datetime import datetime
+from fastapi import status, HTTPException
 import logging
 
 
@@ -50,6 +51,7 @@ def process_csv_upload(df: pd.DataFrame, file_name: str, db: Session):
         
         successful_rows = 0
         failed_rows = 0
+        duplicate_rows = 0
         errors = []
 
         for index, row in df.iterrows():
@@ -57,6 +59,16 @@ def process_csv_upload(df: pd.DataFrame, file_name: str, db: Session):
             # transaction_day_of_week = day_to_int(row["transaction_day_of_week"])
 
             try:
+                # Check if txn already exists
+                existing_txn = db.query(models.Transaction).filter(
+                    models.Transaction.transaction_id == row["transaction_id"]
+                ).first()
+                
+                if existing_txn:
+                    duplicate_rows += 1
+                    logger.info(f"Skipping duplicate transaction: {row['transaction_id']}")
+                    continue  # Skip this row
+                
                 txn = models.Transaction(
                     transaction_id=row["transaction_id"],
                     timestamp=row["timestamp"].to_pydatetime() if not pd.isnull(row["timestamp"]) else None,  
@@ -93,7 +105,7 @@ def process_csv_upload(df: pd.DataFrame, file_name: str, db: Session):
                     is_high_risk_behavior=bool(row["is_high_risk_behavior"]),
                     label=row["label"]
                 )
-                db.merge(txn)
+                db.add(txn)
                 successful_rows += 1
             
             except Exception as e:
@@ -111,7 +123,12 @@ def process_csv_upload(df: pd.DataFrame, file_name: str, db: Session):
         upload_record.rows_processed = successful_rows
         upload_record.status = "success" if failed_rows == 0 else "partial"
         if errors:
-            upload_record.details = {"errors": errors[:10]}  # Store first 10 errors
+            upload_record.details = {
+                "errors": errors[:10], # Store first 10 errors
+                "duplicates": duplicate_rows 
+                }  
+        else:
+            upload_record.details = {"duplicates": duplicate_rows}
         
         db.commit()
 
@@ -120,12 +137,19 @@ def process_csv_upload(df: pd.DataFrame, file_name: str, db: Session):
             "total_rows": len(df),
             "successful_rows": successful_rows,
             "failed_rows": failed_rows,
+            "duplicate_rows": duplicate_rows,
             "upload_id": upload_record.upload_id 
         }
 
     except Exception as e:
         logger.error(f"---Error while parsing CSV: {str(e)}")
-        raise
+        upload_record.status = "failed"
+        upload_record.details = {"error": "CSV processing failed."}
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"CSV processing failed."
+        )
 
 
 def day_to_int(day_name: str) -> int:
@@ -138,4 +162,4 @@ def day_to_int(day_name: str) -> int:
         "Saturday": 5,
         "Sunday": 6
     }
-    return day_map.get(day_name, -1)  # -1 if invalid
+    return day_map.get(day_name, -1)  # -1 if invalid 
