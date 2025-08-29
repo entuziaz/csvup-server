@@ -2,6 +2,7 @@ services:
   - type: web
     name: csv-upload-api
     env: python
+    pythonVersion: "3.11.9"
     buildCommand: |
       pip install -r requirements.txt
       python run_migrations.py

@@ -1,6 +1,10 @@
-from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime
+from sqlalchemy import (
+    Column, String, Integer, 
+    Float, Boolean, DateTime, JSON
+)
 from app.core.database import Base
-
+from uuid import uuid4, UUID
+from datetime import datetime
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -54,3 +58,15 @@ class Transaction(Base):
     is_high_risk_behavior = Column(Boolean)
     label = Column(Float)
 
+class UploadHistory(Base):
+    __tablename__ = "upload_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    # upload_id = Column(UUID, unique=True, index=True, nullable=False)
+    upload_id = Column(String(36), unique=True, index=True, default=lambda: str(uuid4()), nullable=False)
+    filename = Column(String, nullable=False)
+    uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    rows_processed = Column(Integer, nullable=False)
+    status = Column(String, default="success")  # success, partial, failed
+    # user_ip = Column(String, nullable=True)
+    details = Column(JSON, nullable=True)  # to store additional info eg. errors
