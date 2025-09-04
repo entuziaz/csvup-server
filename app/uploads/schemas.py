@@ -4,6 +4,7 @@ from uuid import UUID
 from datetime import datetime
 
 class UploadResponse(BaseModel):
+    success: bool
     message: str
     data: dict
 

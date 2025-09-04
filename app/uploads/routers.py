@@ -60,6 +60,7 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         logger.info(f"Uploaded file {file_name} with {result['successful_rows']} successful rows, {result['failed_rows']} failed rows")
 
         return {
+            "success": True,
             "message": "File processed successfully",
             "data": result
         }
